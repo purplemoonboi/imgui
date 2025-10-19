@@ -1,101 +1,46 @@
-/*
- * Copyright (c) 2014-2025, NVIDIA CORPORATION. All rights reserved.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
- * DEALINGS IN THE SOFTWARE.
- */
-
-/*
-License for Dear ImGui
-
-Copyright (c) 2014-2025 Omar Cornut
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
+// dear imgui: Renderer Backend for NVRHI
 
 #pragma once
-
-#include <memory>
-#include <vector>
-#include <unordered_map>
-#include <stdint.h>
+#include "imgui.h" // IMGUI_IMPL_API
+#ifndef IMGUI_DISABLE
 
 #include <nvrhi/nvrhi.h>
+#include "Foundation/Renderer/DescriptorManager.h"
 
-#include <imgui.h>
+using namespace Foundation;
 
-namespace Foundation
+// Initialization data, for ImGui_ImplNVRHI_Init()
+struct ImGui_ImplNVRHI_InitInfo
 {
-    namespace Graphics
-    {
-        class ShaderManager;
+    nvrhi::DeviceHandle Device;
+    int NumFramesInFlight;
+    nvrhi::Format RTFormat;
+    nvrhi::Format DSFormat;
+    void* UserData;
 
-        struct ImGui_NVRHI
-        {
-            nvrhi::DeviceHandle m_device;
-            nvrhi::CommandListHandle m_commandList;
+    ImGui_ImplNVRHI_InitInfo() {}
+};
 
-            nvrhi::ShaderHandle vertexShader;
-            nvrhi::ShaderHandle pixelShader;
-            nvrhi::InputLayoutHandle shaderAttribLayout;
+// Follow "Getting Started" link and check examples/ folder to learn about using backends!
+IMGUI_IMPL_API bool ImGui_ImplNVRHI_Init(ImGui_ImplNVRHI_InitInfo* info);
+IMGUI_IMPL_API void ImGui_ImplNVRHI_Shutdown();
+IMGUI_IMPL_API void ImGui_ImplNVRHI_NewFrame();
+IMGUI_IMPL_API void ImGui_ImplNVRHI_RenderDrawData(ImDrawData* draw_data, nvrhi::CommandListHandle commandList, nvrhi::FramebufferHandle framebuffer);
 
-            nvrhi::TextureHandle fontTexture;
-            nvrhi::SamplerHandle fontSampler;
+// Use if you want to reset your rendering device without losing Dear ImGui state.
+IMGUI_IMPL_API bool ImGui_ImplNVRHI_CreateDeviceObjects();
+IMGUI_IMPL_API void ImGui_ImplNVRHI_InvalidateDeviceObjects();
 
-            nvrhi::BufferHandle vertexBuffer;
-            nvrhi::BufferHandle indexBuffer;
+// (Advanced) Use e.g. if you need to precisely control the timing of texture updates (e.g. for staged rendering), by setting ImDrawData::Textures = NULL to handle this manually.
+IMGUI_IMPL_API void ImGui_ImplNVRHI_UpdateTexture(ImTextureData* tex);
 
-            nvrhi::BindingLayoutHandle bindingLayout;
-            nvrhi::GraphicsPipelineDesc basePSODesc;
+// [BETA] Selected render state data shared with callbacks.
+// This is temporarily stored in GetPlatformIO().Renderer_RenderState during the ImGui_ImplDX12_RenderDrawData() call.
+// (Please open an issue if you feel you need access to more data)
+struct ImGui_ImplNVRHI_RenderState
+{
+    nvrhi::DeviceHandle Device;
+    nvrhi::CommandListHandle CommandList;
+};
 
-            nvrhi::GraphicsPipelineHandle pso;
-            std::unordered_map<nvrhi::ITexture*, nvrhi::BindingSetHandle> bindingsCache;
-
-            std::vector<ImDrawVert> vtxBuffer;
-            std::vector<ImDrawIdx> idxBuffer;
-
-            bool init(nvrhi::IDevice* device, ShaderManager& shaderManager);
-            bool updateFontTexture();
-            bool render(nvrhi::IFramebuffer* framebuffer);
-            void backbufferResizing();
-
-          private:
-            bool reallocateBuffer(nvrhi::BufferHandle& buffer, size_t requiredSize, size_t reallocateSize, bool isIndexBuffer);
-
-            nvrhi::IGraphicsPipeline* getPSO(nvrhi::FramebufferInfo const& framebufferInfo);
-            nvrhi::IBindingSet* getBindingSet(nvrhi::ITexture* texture);
-            bool updateGeometry(nvrhi::ICommandList* commandList);
-        };
-    } // namespace Graphics
-} // namespace Foundation
+#endif // #ifndef IMGUI_DISABLE
